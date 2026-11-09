@@ -1,0 +1,5 @@
+[
+  {"device_id": "DEV-001", "last_maintenance": "2023-12-01", "type": "常规保养"},
+  {"device_id": "DEV-002", "last_maintenance": "2024-03-15", "type": "传感器校准"},
+  {"device_id": "DEV-003", "last_maintenance": "2024-05-20", "type": "固件升级"}
+]

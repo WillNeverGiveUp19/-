@@ -1,0 +1,20 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+
+# Environment variables and local runtime state
+.env
+.langgraph_api/
+
+# Local Milvus Lite database
+data/milvus_lite.db/
+
+# macOS
+.DS_Store

@@ -1,0 +1,6 @@
+[
+  {"code": "E101", "meaning": "过流报警", "severity": "高", "suggest": "立即停机检查电机与接线"},
+  {"code": "E205", "meaning": "过压报警", "severity": "高", "suggest": "检查输入电压与制动电阻"},
+  {"code": "T301", "meaning": "温度过高", "severity": "中", "suggest": "检查散热与量程配置"},
+  {"code": "C404", "meaning": "通信中断", "severity": "中", "suggest": "检查波特率与终端电阻"}
+]
