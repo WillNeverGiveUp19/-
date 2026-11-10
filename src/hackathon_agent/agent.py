@@ -17,6 +17,8 @@ from openai import OpenAI
 from pymilvus import MilvusClient
 from pymilvus.exceptions import ConnectionConfigException
 
+from hackathon_agent.log_workflow import create_log_analysis_tool
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATABASE_PATH = PROJECT_ROOT / "data" / "milvus_lite.db"
 COLLECTION_NAME = "manuals"
@@ -30,7 +32,9 @@ _MILVUS_CLIENT: MilvusClient | None = None
 SYSTEM_PROMPT = """你是设备维护知识助手。请使用中文回答。
 遇到设备故障、故障码或维修步骤问题时，必须先调用 search_manuals 工具检索手册，
 再基于检索结果回答。清楚区分手册中明确记载的内容和你的推断；
-如果检索结果不足以回答，请明确说明，不要编造手册内容。回答时注明引用的手册文件名。"""
+如果检索结果不足以回答，请明确说明，不要编造手册内容。回答时注明引用的手册文件名。
+遇到设备运行日志、温度/振动趋势或告警统计问题时，调用 analyze_device_logs 工具；
+日志报告基于数据文件中的历史采样，不代表实时状态。"""
 
 
 def _close_milvus_client() -> None:
@@ -138,9 +142,10 @@ def create_manual_agent() -> CompiledStateGraph:
         temperature=0,
     )
     retrieval_tool = _create_retrieval_tool(api_key, base_url)
+    log_analysis_tool = create_log_analysis_tool(llm)
     return create_agent(
         model=llm,
-        tools=[retrieval_tool],
+        tools=[retrieval_tool, log_analysis_tool],
         system_prompt=SYSTEM_PROMPT,
         name="maintenance_manual_agent",
     )
