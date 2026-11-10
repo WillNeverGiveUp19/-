@@ -32,9 +32,7 @@ data/
 | `manual_b_temperature_sensor.txt` | 手册B · 温度传感器 | T301、T302 | [原文] |
 | `manual_c_comm_module.txt` | 手册C · 通信模块 | C404 | [原文] |
 
-解析入口：`hackathon_agent.data.loaders.load_manual_entries()`，
-每条被解析为 `ManualEntry(manual_id, manual_title, code, title, steps, source_path)`，
-既用于**关键词检索降级**，也用于**向量库（Chroma）建索引入口**。
+向量化入口：`src/hackathon_agent/ingest_manuals.py`。脚本读取各 TXT 的首行作为标题，将后续非空行按 `chunk_size=300`、`chunk_overlap=40` 切分，使用 DashScope OpenAI 兼容 API 的 `qwen3.7-text-embedding` 生成向量，写入 `data/milvus_lite.db` 中的 Milvus Lite `manuals` 集合。当前实现没有 `hackathon_agent.data.loaders` 模块、关键词检索降级或 Chroma 索引。
 
 ## 2. 运行日志（材料 2）→ `data/logs/device_logs.csv`
 
@@ -42,7 +40,7 @@ data/
 
 | 字段 | 类型 | 含义 |
 |---|---|---|
-| `timestamp` | `YYYY-MM-DD HH:MM` | 采样时间（解析为 `datetime`） |
+| `timestamp` | `YYYY-MM-DD HH:MM` | 采样时间；当前工作流按该格式的文本时间顺序排序 |
 | `device_id` | str | 设备编号，如 `DEV-001` |
 | `temperature` | float | 温度（℃） |
 | `vibration` | float | 振动（mm/s） |
@@ -68,8 +66,8 @@ data/
 ```
 
 4 条记录（E101 / E205 / T301 / C404）**与题目逐字一致 [原文]**。
-注意：**T302 在手册 B 中有、但故障码表中没有**，这是刻意保留的「部分命中」case，
-用于验证 Agent 会明说 `未找到故障码 T302` 而不是编造严重等级。
+注意：**T302 在手册 B 中有、但故障码表中没有**，这是数据层面的「部分命中」case。
+当前 Agent 尚未查询此 JSON，因此不能保证它会检查并指出故障码表中缺少 T302。
 
 ## 4. 维护记录（材料 4）→ `data/maintenance_records.json`
 
@@ -87,6 +85,7 @@ data/
 
 | 问题类型 | 需要的数据 | 对应工具 |
 |---|---|---|
-| 故障排查 | 手册 + 故障码表 | `retrieve_manual`（RAG）+ `lookup_fault_code`（确定性） |
-| 日志分析 | 运行日志 CSV | `query_logs`（确定性聚合） |
-| 综合判断 | 日志 + 维护记录 | `query_logs` + `get_maintenance` + `lookup_fault_code` |
+| 故障排查 | 手册向量库 | `search_manuals`（Embedding + Milvus Lite 检索） |
+| 日志分析 | 运行日志 CSV + 维护记录 JSON | `analyze_device_logs`（LangGraph 工作流；程序确定性聚合，LLM 解释） |
+
+`fault_codes.json` 是项目中的参考数据，但当前 Agent 尚未提供读取它的独立工具。日志分析工作流仅将 `status=alert` 计为明确告警；数据中没有温度/振动告警阈值。工作流以文件中的最新采样时间为准，不能用于实时监控。
